@@ -1,0 +1,750 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI-Based Predictive & Agricultural Systems</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@300;400;500&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #050c0a;
+    --surface: #0c1a14;
+    --surface2: #112218;
+    --green: #00e87a;
+    --green-dim: #00a855;
+    --green-glow: rgba(0,232,122,0.15);
+    --orange: #ff7b2c;
+    --orange-dim: #c45a15;
+    --blue: #38c8ff;
+    --text: #e8f5ee;
+    --text-muted: #6b8f78;
+    --border: rgba(0,232,122,0.12);
+    --border-strong: rgba(0,232,122,0.28);
+  }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    overflow-x: hidden;
+    min-height: 100vh;
+  }
+
+  /* ── NOISE OVERLAY ── */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+    opacity: 0.35;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* ── HEADER ── */
+  header {
+    position: relative;
+    padding: 80px 48px 60px;
+    border-bottom: 1px solid var(--border);
+    overflow: hidden;
+    z-index: 1;
+  }
+
+  .header-grid {
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(var(--border) 1px, transparent 1px),
+      linear-gradient(90deg, var(--border) 1px, transparent 1px);
+    background-size: 60px 60px;
+    mask-image: radial-gradient(ellipse 80% 100% at 50% 0%, black 40%, transparent 100%);
+  }
+
+  .header-glow {
+    position: absolute;
+    width: 600px; height: 600px;
+    background: radial-gradient(circle, rgba(0,232,122,0.08) 0%, transparent 70%);
+    top: -200px; left: 50%;
+    transform: translateX(-50%);
+    pointer-events: none;
+  }
+
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(0,232,122,0.08);
+    border: 1px solid var(--border-strong);
+    border-radius: 100px;
+    padding: 6px 16px;
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    color: var(--green);
+    text-transform: uppercase;
+    margin-bottom: 28px;
+    position: relative;
+  }
+  .badge::before {
+    content: '';
+    width: 6px; height: 6px;
+    background: var(--green);
+    border-radius: 50%;
+    animation: pulse 2s infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(0,232,122,0.4); }
+    50% { opacity: 0.6; box-shadow: 0 0 0 4px rgba(0,232,122,0); }
+  }
+
+  h1 {
+    font-family: 'Syne', sans-serif;
+    font-size: clamp(32px, 5vw, 64px);
+    font-weight: 800;
+    line-height: 1.05;
+    letter-spacing: -0.02em;
+    position: relative;
+    max-width: 780px;
+  }
+  h1 em {
+    font-family: 'Instrument Serif', serif;
+    font-style: italic;
+    color: var(--green);
+  }
+
+  .header-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 24px;
+    margin-top: 32px;
+    position: relative;
+  }
+  .meta-item {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .meta-label { font-size: 10px; color: var(--text-muted); letter-spacing: 0.1em; text-transform: uppercase; }
+  .meta-value { font-size: 13px; color: var(--text); }
+
+  .header-links {
+    display: flex;
+    gap: 12px;
+    margin-top: 36px;
+    position: relative;
+  }
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 22px;
+    border-radius: 6px;
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    text-decoration: none;
+    transition: all 0.2s;
+    cursor: pointer;
+    letter-spacing: 0.04em;
+  }
+  .btn-primary {
+    background: var(--green);
+    color: #050c0a;
+    font-weight: 500;
+    border: none;
+  }
+  .btn-primary:hover { background: #00ffa3; transform: translateY(-1px); box-shadow: 0 8px 24px rgba(0,232,122,0.3); }
+  .btn-ghost {
+    background: transparent;
+    color: var(--text);
+    border: 1px solid var(--border-strong);
+  }
+  .btn-ghost:hover { border-color: var(--green); color: var(--green); transform: translateY(-1px); }
+
+  /* ── STATS BAR ── */
+  .stats-bar {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    border-bottom: 1px solid var(--border);
+    position: relative;
+    z-index: 1;
+  }
+  .stat-item {
+    padding: 28px 36px;
+    border-right: 1px solid var(--border);
+    position: relative;
+    overflow: hidden;
+  }
+  .stat-item:last-child { border-right: none; }
+  .stat-number {
+    font-family: 'Syne', sans-serif;
+    font-size: 36px;
+    font-weight: 800;
+    color: var(--green);
+    line-height: 1;
+    display: flex;
+    align-items: baseline;
+    gap: 4px;
+  }
+  .stat-number span { font-size: 18px; font-weight: 600; }
+  .stat-desc { font-size: 11px; color: var(--text-muted); margin-top: 8px; letter-spacing: 0.06em; }
+
+  /* ── MAIN CONTENT ── */
+  main { position: relative; z-index: 1; }
+
+  /* ── SECTION LABEL ── */
+  .section-label {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 20px 48px;
+    border-bottom: 1px solid var(--border);
+    font-size: 10px;
+    color: var(--text-muted);
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+  }
+  .section-label::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  /* ── PROJECT CARDS ── */
+  .projects { display: flex; flex-direction: column; }
+
+  .project-card {
+    border-bottom: 1px solid var(--border);
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    min-height: 520px;
+    position: relative;
+    overflow: hidden;
+    transition: background 0.3s;
+  }
+  .project-card:hover { background: rgba(0,232,122,0.02); }
+
+  .project-card.reverse { direction: rtl; }
+  .project-card.reverse > * { direction: ltr; }
+
+  .project-info {
+    padding: 56px 48px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    border-right: 1px solid var(--border);
+    position: relative;
+  }
+  .project-card.reverse .project-info { border-right: none; border-left: 1px solid var(--border); }
+
+  .project-number {
+    font-family: 'Syne', sans-serif;
+    font-size: 80px;
+    font-weight: 800;
+    color: rgba(0,232,122,0.06);
+    line-height: 1;
+    position: absolute;
+    top: 32px; right: 40px;
+    pointer-events: none;
+  }
+
+  .project-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 10px;
+    color: var(--green);
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    margin-bottom: 16px;
+  }
+  .project-tag .dot {
+    width: 4px; height: 4px;
+    background: var(--green);
+    border-radius: 50%;
+  }
+
+  .project-title {
+    font-family: 'Syne', sans-serif;
+    font-size: clamp(22px, 3vw, 36px);
+    font-weight: 700;
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+    margin-bottom: 16px;
+  }
+  .project-title em {
+    font-family: 'Instrument Serif', serif;
+    font-style: italic;
+    color: var(--green);
+  }
+
+  .project-desc {
+    font-size: 13px;
+    line-height: 1.7;
+    color: #8ab09a;
+    margin-bottom: 28px;
+    max-width: 420px;
+  }
+
+  .tech-stack {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 32px;
+  }
+  .tech-tag {
+    padding: 4px 12px;
+    background: rgba(0,232,122,0.06);
+    border: 1px solid rgba(0,232,122,0.15);
+    border-radius: 4px;
+    font-size: 11px;
+    color: var(--green-dim);
+    letter-spacing: 0.05em;
+  }
+
+  /* ── RESULTS PANEL ── */
+  .project-results {
+    padding: 48px 44px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    background: var(--surface);
+    justify-content: center;
+  }
+
+  .results-title {
+    font-size: 10px;
+    color: var(--text-muted);
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+
+  /* ── MODEL ROW ── */
+  .model-result {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 20px 24px;
+    position: relative;
+    overflow: hidden;
+    transition: border-color 0.2s, transform 0.2s;
+  }
+  .model-result:hover { border-color: var(--border-strong); transform: translateX(4px); }
+  .model-result.winner { border-color: rgba(0,232,122,0.4); }
+  .model-result.winner::before {
+    content: 'BEST';
+    position: absolute;
+    top: 12px; right: 12px;
+    font-size: 9px;
+    letter-spacing: 0.12em;
+    color: var(--green);
+    background: rgba(0,232,122,0.1);
+    padding: 3px 8px;
+    border-radius: 100px;
+  }
+
+  .model-name {
+    font-family: 'Syne', sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    margin-bottom: 10px;
+    color: var(--text);
+  }
+
+  .metric-bar-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .metric-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .metric-label { font-size: 10px; color: var(--text-muted); }
+  .metric-value {
+    font-family: 'Syne', sans-serif;
+    font-size: 22px;
+    font-weight: 800;
+    color: var(--green);
+  }
+  .metric-value.orange { color: var(--orange); }
+
+  .bar-track {
+    height: 4px;
+    background: rgba(255,255,255,0.05);
+    border-radius: 2px;
+    overflow: hidden;
+    margin-top: 6px;
+  }
+  .bar-fill {
+    height: 100%;
+    border-radius: 2px;
+    background: linear-gradient(90deg, var(--green-dim), var(--green));
+    transform-origin: left;
+    animation: growBar 1.4s cubic-bezier(0.34,1.56,0.64,1) forwards;
+    transform: scaleX(0);
+  }
+  .bar-fill.orange-fill {
+    background: linear-gradient(90deg, var(--orange-dim), var(--orange));
+  }
+  @keyframes growBar {
+    to { transform: scaleX(1); }
+  }
+
+  /* improvement badge */
+  .improvement {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 16px;
+    font-size: 11px;
+    color: var(--green);
+    background: rgba(0,232,122,0.06);
+    border: 1px solid rgba(0,232,122,0.2);
+    border-radius: 6px;
+    padding: 8px 14px;
+  }
+  .improvement .arrow { font-size: 16px; }
+
+  /* ── WORKFLOW ── */
+  .workflow {
+    padding: 64px 48px;
+    border-bottom: 1px solid var(--border);
+  }
+  .workflow-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 24px;
+    font-weight: 700;
+    margin-bottom: 36px;
+  }
+  .workflow-steps {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 1px;
+    background: var(--border);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  .step {
+    background: var(--bg);
+    padding: 28px 24px;
+    position: relative;
+    transition: background 0.2s;
+  }
+  .step:hover { background: var(--surface); }
+  .step-num {
+    font-family: 'Syne', sans-serif;
+    font-size: 11px;
+    color: var(--text-muted);
+    letter-spacing: 0.12em;
+    margin-bottom: 10px;
+  }
+  .step-name {
+    font-family: 'Syne', sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 6px;
+  }
+  .step-detail { font-size: 11px; color: var(--text-muted); line-height: 1.5; }
+
+  /* ── FOOTER ── */
+  footer {
+    padding: 40px 48px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 16px;
+    position: relative;
+    z-index: 1;
+  }
+  .footer-left { font-size: 12px; color: var(--text-muted); }
+  .footer-left strong { color: var(--text); font-family: 'Syne', sans-serif; }
+  .footer-links { display: flex; gap: 16px; }
+  .footer-link {
+    font-size: 11px;
+    color: var(--text-muted);
+    text-decoration: none;
+    letter-spacing: 0.08em;
+    transition: color 0.2s;
+  }
+  .footer-link:hover { color: var(--green); }
+
+  /* ── ANIMATIONS ── */
+  .fade-up {
+    opacity: 0;
+    transform: translateY(24px);
+    animation: fadeUp 0.7s ease forwards;
+  }
+  @keyframes fadeUp {
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .delay-1 { animation-delay: 0.1s; }
+  .delay-2 { animation-delay: 0.2s; }
+  .delay-3 { animation-delay: 0.3s; }
+  .delay-4 { animation-delay: 0.4s; }
+
+  @media (max-width: 768px) {
+    .project-card, .project-card.reverse { grid-template-columns: 1fr; direction: ltr; }
+    .project-card.reverse .project-info { border-left: none; }
+    .project-info { border-right: none !important; }
+    .stats-bar { grid-template-columns: repeat(2,1fr); }
+    header, .workflow, footer { padding: 40px 24px; }
+    .project-info, .project-results { padding: 36px 24px; }
+    .section-label { padding: 16px 24px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header>
+  <div class="header-grid"></div>
+  <div class="header-glow"></div>
+  <div class="badge fade-up">Internship Project · UPSkill & The IoT Academy · 2025</div>
+  <h1 class="fade-up delay-1">
+    AI-Based <em>Predictive</em><br>& Agricultural Systems
+  </h1>
+  <div class="header-meta fade-up delay-2">
+    <div class="meta-item">
+      <span class="meta-label">Engineer</span>
+      <span class="meta-value">Bharama Neelappagol</span>
+    </div>
+    <div class="meta-item">
+      <span class="meta-label">Duration</span>
+      <span class="meta-value">Sep – Nov 2025</span>
+    </div>
+    <div class="meta-item">
+      <span class="meta-label">Stack</span>
+      <span class="meta-value">Python · TensorFlow · Scikit-learn</span>
+    </div>
+    <div class="meta-item">
+      <span class="meta-label">Domain</span>
+      <span class="meta-value">Agriculture + Predictive Maintenance</span>
+    </div>
+  </div>
+  <div class="header-links fade-up delay-3">
+    <a href="https://github.com/Bharama/AI-Based-Predictive-and-Agricultural-Systems" target="_blank" class="btn btn-primary">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.3 3.44 9.8 8.2 11.38.6.11.82-.26.82-.58v-2.03c-3.34.73-4.04-1.61-4.04-1.61-.54-1.38-1.33-1.75-1.33-1.75-1.09-.74.08-.73.08-.73 1.2.09 1.84 1.24 1.84 1.24 1.07 1.83 2.8 1.3 3.48 1 .11-.78.42-1.3.76-1.6-2.67-.3-5.47-1.33-5.47-5.93 0-1.31.47-2.38 1.24-3.22-.13-.3-.54-1.52.12-3.17 0 0 1.01-.32 3.3 1.23a11.5 11.5 0 013-.4c1.02.005 2.04.14 3 .4 2.28-1.55 3.29-1.23 3.29-1.23.66 1.65.25 2.87.12 3.17.77.84 1.24 1.91 1.24 3.22 0 4.61-2.81 5.63-5.48 5.92.43.37.81 1.1.81 2.22v3.29c0 .32.21.7.83.58C20.57 21.8 24 17.3 24 12c0-6.63-5.37-12-12-12z"/></svg>
+      View on GitHub
+    </a>
+    <a href="https://bharama.github.io/My_profile-/" target="_blank" class="btn btn-ghost">
+      ↗ Portfolio
+    </a>
+  </div>
+</header>
+
+<!-- STATS BAR -->
+<div class="stats-bar fade-up delay-4">
+  <div class="stat-item">
+    <div class="stat-number">~97<span>%</span></div>
+    <div class="stat-desc">ResNet50 crop detection accuracy</div>
+  </div>
+  <div class="stat-item">
+    <div class="stat-number">45<span>%</span></div>
+    <div class="stat-desc">MAE reduction in RUL prediction</div>
+  </div>
+  <div class="stat-item">
+    <div class="stat-number">4</div>
+    <div class="stat-desc">ML models trained & evaluated</div>
+  </div>
+  <div class="stat-item">
+    <div class="stat-number">2</div>
+    <div class="stat-desc">Real-world domains addressed</div>
+  </div>
+</div>
+
+<!-- PROJECTS -->
+<div class="section-label">01 — Projects</div>
+<div class="projects">
+
+  <!-- PROJECT 1 -->
+  <div class="project-card">
+    <div class="project-info">
+      <div class="project-number">01</div>
+      <div>
+        <div class="project-tag"><span class="dot"></span>Computer Vision · Deep Learning</div>
+        <h2 class="project-title">Crop & Weed<br><em>Detection</em></h2>
+        <p class="project-desc">
+          Built a binary image classifier to distinguish crops from weeds in agricultural imagery. 
+          Progressed from a custom CNN baseline to ResNet50 transfer learning — pushing accuracy from 92% to ~97% 
+          on real agricultural datasets, directly applicable to smart farming automation.
+        </p>
+        <div class="tech-stack">
+          <span class="tech-tag">TensorFlow</span>
+          <span class="tech-tag">Keras</span>
+          <span class="tech-tag">ResNet50</span>
+          <span class="tech-tag">Transfer Learning</span>
+          <span class="tech-tag">OpenCV</span>
+          <span class="tech-tag">NumPy</span>
+          <span class="tech-tag">Matplotlib</span>
+        </div>
+      </div>
+      <div class="improvement">
+        <span class="arrow">↑</span>
+        5% accuracy gain switching from CNN to ResNet50 transfer learning
+      </div>
+    </div>
+    <div class="project-results">
+      <div class="results-title">Model Comparison</div>
+
+      <div class="model-result">
+        <div class="model-name">Custom CNN</div>
+        <div class="metric-bar-wrap">
+          <div class="metric-info">
+            <span class="metric-label">Accuracy</span>
+            <span class="metric-value orange">~92%</span>
+          </div>
+          <div class="bar-track">
+            <div class="bar-fill orange-fill" style="width:92%"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="model-result winner">
+        <div class="model-name">ResNet50 — Transfer Learning</div>
+        <div class="metric-bar-wrap">
+          <div class="metric-info">
+            <span class="metric-label">Accuracy</span>
+            <span class="metric-value">~97%</span>
+          </div>
+          <div class="bar-track">
+            <div class="bar-fill" style="width:97%; animation-delay:0.3s"></div>
+          </div>
+        </div>
+      </div>
+
+      <div style="margin-top:8px; padding:16px; background:rgba(0,232,122,0.04); border:1px dashed rgba(0,232,122,0.2); border-radius:6px; font-size:11px; color:#6b8f78; line-height:1.6;">
+        <strong style="color:var(--green)">Why ResNet50?</strong><br>
+        Leveraged ImageNet pretrained weights to extract deep visual features, 
+        fine-tuned the top layers on agricultural imagery — drastically reducing training time 
+        while improving generalisation.
+      </div>
+    </div>
+  </div>
+
+  <!-- PROJECT 2 -->
+  <div class="project-card reverse">
+    <div class="project-info">
+      <div class="project-number">02</div>
+      <div>
+        <div class="project-tag"><span class="dot"></span>Time Series · Predictive Maintenance</div>
+        <h2 class="project-title">Turbofan Engine<br><em>RUL Prediction</em></h2>
+        <p class="project-desc">
+          Predicted the Remaining Useful Life (RUL) of turbofan engines using NASA's CMAPSS sensor dataset. 
+          Applied classical ML with RandomForest as a baseline, then built LSTM networks to capture 
+          temporal degradation patterns — cutting MAE from ~20 to ~11 cycles (45% improvement).
+        </p>
+        <div class="tech-stack">
+          <span class="tech-tag">LSTM</span>
+          <span class="tech-tag">RandomForest</span>
+          <span class="tech-tag">Scikit-learn</span>
+          <span class="tech-tag">Pandas</span>
+          <span class="tech-tag">Seaborn</span>
+          <span class="tech-tag">NASA CMAPSS</span>
+          <span class="tech-tag">Time Series</span>
+        </div>
+      </div>
+      <div class="improvement">
+        <span class="arrow">↓</span>
+        45% MAE reduction — LSTM outperforms RandomForest on sequential sensor data
+      </div>
+    </div>
+    <div class="project-results">
+      <div class="results-title">Model Comparison — MAE (lower is better)</div>
+
+      <div class="model-result">
+        <div class="model-name">RandomForest Regression</div>
+        <div class="metric-bar-wrap">
+          <div class="metric-info">
+            <span class="metric-label">Mean Absolute Error</span>
+            <span class="metric-value orange">~20 cycles</span>
+          </div>
+          <div class="bar-track">
+            <div class="bar-fill orange-fill" style="width:100%"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="model-result winner">
+        <div class="model-name">LSTM — Deep Learning</div>
+        <div class="metric-bar-wrap">
+          <div class="metric-info">
+            <span class="metric-label">Mean Absolute Error</span>
+            <span class="metric-value">~11 cycles</span>
+          </div>
+          <div class="bar-track">
+            <div class="bar-fill" style="width:55%; animation-delay:0.3s"></div>
+          </div>
+        </div>
+      </div>
+
+      <div style="margin-top:8px; padding:16px; background:rgba(0,232,122,0.04); border:1px dashed rgba(0,232,122,0.2); border-radius:6px; font-size:11px; color:#6b8f78; line-height:1.6;">
+        <strong style="color:var(--green)">Why LSTM?</strong><br>
+        Engine sensor readings are sequential — LSTM's memory cells capture long-range 
+        degradation trends across engine cycles that tree-based models cannot model effectively.
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- WORKFLOW -->
+<div class="workflow">
+  <div class="workflow-title">ML Pipeline — End to End</div>
+  <div class="workflow-steps">
+    <div class="step">
+      <div class="step-num">STEP 01</div>
+      <div class="step-name">Data Collection</div>
+      <div class="step-detail">Agricultural image dataset + NASA CMAPSS turbofan sensor data</div>
+    </div>
+    <div class="step">
+      <div class="step-num">STEP 02</div>
+      <div class="step-name">Preprocessing</div>
+      <div class="step-detail">Image augmentation, normalisation, sensor signal cleaning with Pandas/NumPy</div>
+    </div>
+    <div class="step">
+      <div class="step-num">STEP 03</div>
+      <div class="step-name">EDA</div>
+      <div class="step-detail">Visualised class distributions, sensor correlations, degradation trends with Seaborn</div>
+    </div>
+    <div class="step">
+      <div class="step-num">STEP 04</div>
+      <div class="step-name">Baseline Model</div>
+      <div class="step-detail">CNN for vision · RandomForest for regression — established performance benchmarks</div>
+    </div>
+    <div class="step">
+      <div class="step-num">STEP 05</div>
+      <div class="step-name">Advanced Model</div>
+      <div class="step-detail">ResNet50 transfer learning · LSTM time-series — significant accuracy gains</div>
+    </div>
+    <div class="step">
+      <div class="step-num">STEP 06</div>
+      <div class="step-name">Evaluation</div>
+      <div class="step-detail">Accuracy, MAE metrics · hyperparameter tuning · reproducible GitHub reporting</div>
+    </div>
+  </div>
+</div>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-left">
+    Built by <strong>Bharama Neelappagol</strong> · UPSkill & The IoT Academy Internship · 2025
+  </div>
+  <div class="footer-links">
+    <a href="https://github.com/Bharama/AI-Based-Predictive-and-Agricultural-Systems" target="_blank" class="footer-link">GitHub Repo</a>
+    <a href="https://bharama.github.io/My_profile-/" target="_blank" class="footer-link">Portfolio</a>
+    <a href="https://www.linkedin.com/in/bharama-neelappagol-a7431128a" target="_blank" class="footer-link">LinkedIn</a>
+    <a href="mailto:bharama03@gmail.com" class="footer-link">Contact</a>
+  </div>
+</footer>
+
+</body>
+</html>
